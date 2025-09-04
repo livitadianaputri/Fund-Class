@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FUND CLASS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide-react@0.368.0/dist/lucide-react.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000000;
+            background-image: linear-gradient(145deg, #000000 0%, #301934 100%);
+            color: #f0f0f0;
+        }
+        .main-container {
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .btn-primary {
+            background-color: #8A2BE2; /* BlueViolet */
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #9932CC; /* MediumOrchid */
+            box-shadow: 0 0 15px rgba(138, 43, 226, 0.7);
+        }
+        .input-field {
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .leaderboard-item:nth-child(1) .rank { background-color: #FFD700; color: #000; } /* Gold */
+        .leaderboard-item:nth-child(2) .rank { background-color: #C0C0C0; color: #000; } /* Silver */
+        .leaderboard-item:nth-child(3) .rank { background-color: #CD7F32; color: #000; } /* Bronze */
+        .hidden { display: none; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Avatar Styles */
+        .avatar-container svg {
+            width: 100%;
+            height: auto;
+            max-width: 250px;
+        }
+        .avatar-preview {
+            position: relative;
+            width: 250px;
+            height: 320px;
+        }
+        .avatar-preview .layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        .gift-box {
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .gift-box:hover {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.8);
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0.7;
+            animation: confetti-fall 2s linear infinite;
+        }
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100vh) rotate(0deg); }
+            100% { transform: translateY(100vh) rotate(720deg); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div id="app" class="main-container p-4 md:p-8 flex flex-col items-center justify-center">
+
+        <!-- ===== Layar Login ===== -->
+        <div id="loginScreen" class="w-full max-w-md text-center fade-in">
+            <div class="glass-card p-8">
+                <h1 class="text-4xl font-bold mb-2 text-purple-300">FUND CLASS</h1>
+                <p class="text-gray-400 mb-8">Cara seru mengelola uang kas!</p>
+                <div class="space-y-4">
+                    <button onclick="app.login('bendahara')" class="w-full btn-primary text-white font-bold py-3 px-4 rounded-lg text-lg">Masuk sebagai Bendahara</button>
+                    <div class="text-gray-500 my-4">atau pilih anggota</div>
+                    <select id="member-select" class="w-full p-3 rounded-lg input-field text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <!-- Opsi anggota akan di-generate oleh JS -->
+                    </select>
+                    <button onclick="app.login('anggota')" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg text-lg mt-2">Masuk sebagai Anggota</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Dashboard Anggota ===== -->
+        <div id="memberDashboard" class="w-full max-w-4xl hidden fade-in">
+            <div id="special-greeting" class="text-center mb-6 p-4 rounded-lg bg-yellow-500 text-black font-bold text-lg hidden shadow-lg shadow-yellow-500/50">
+                <!-- Ucapan spesial untuk juara 1 -->
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Kolom Kiri: Profil & Avatar -->
+                <div class="md:col-span-1 space-y-6">
+                    <div class="glass-card p-6 text-center">
+                        <h2 class="text-2xl font-bold" id="memberName"></h2>
+                        <p class="text-purple-300">Anggota Aktif</p>
+                        <div class="avatar-preview mx-auto my-4" id="memberAvatar">
+                            <!-- Avatar akan di-render di sini -->
+                        </div>
+                        <button onclick="app.showView('avatarCustomizer')" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg">Personalisasi Avatar</button>
+                    </div>
+
+                    <div class="glass-card p-6">
+                        <h3 class="font-bold text-lg mb-4 text-purple-300">Lencana Prestasi</h3>
+                        <div id="memberBadges" class="flex items-center justify-center gap-4">
+                            <!-- Lencana akan ditampilkan di sini -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kolom Kanan: Info & Aksi -->
+                <div class="md:col-span-2 space-y-6">
+                    <div class="glass-card p-6">
+                        <h3 class="font-bold text-lg mb-4 text-purple-300">Konfirmasi Pembayaran</h3>
+                        <p class="text-sm text-gray-400 mb-4">Sudah bayar kas? Masukkan kode konfirmasi yang diberikan bendahara untuk mencatat pembayaranmu.</p>
+                        <div class="flex gap-2">
+                            <input id="paymentCodeInput" type="text" placeholder="Masukkan kode unik..." class="flex-grow p-3 rounded-lg input-field text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <button onclick="app.submitPaymentCode()" class="btn-primary text-white font-bold py-3 px-4 rounded-lg">Konfirmasi</button>
+                        </div>
+                        <p id="payment-status" class="mt-3 text-center text-gray-400"></p>
+                    </div>
+
+                    <div class="glass-card p-6">
+                        <h3 class="font-bold text-lg mb-4 text-purple-300">Papan Peringkat Bulanan</h3>
+                        <div id="leaderboard" class="space-y-3">
+                            <!-- Papan peringkat akan di-generate oleh JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="text-right mt-6">
+                <button id="backToTreasurerButton" onclick="app.showView('treasurerDashboard')" class="hidden w-full md:w-auto bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Kembali ke Dashboard Bendahara</button>
+                <button id="logoutButton" onclick="app.logout()" class="w-full md:w-auto bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg">Keluar</button>
+            </div>
+        </div>
+
+        <!-- ===== Dashboard Bendahara ===== -->
+        <div id="treasurerDashboard" class="w-full max-w-5xl hidden fade-in">
+            <h1 class="text-3xl font-bold text-center mb-6 text-purple-300">Dashboard Bendahara</h1>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="glass-card p-6 text-center">
+                    <h3 class="text-lg text-gray-400">Total Saldo Kas</h3>
+                    <p class="text-4xl font-bold text-green-400" id="totalBalance"></p>
+                </div>
+                <div class="glass-card p-6 text-center">
+                    <h3 class="text-lg text-gray-400">Total Pemasukan</h3>
+                    <p class="text-4xl font-bold text-blue-400" id="totalIncome"></p>
+                </div>
+                <div class="glass-card p-6 text-center">
+                    <h3 class="text-lg text-gray-400">Total Pengeluaran</h3>
+                    <p class="text-4xl font-bold text-red-400" id="totalOutcome"></p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Kolom Kiri: Aksi Bendahara -->
+                <div class="space-y-6">
+                    <div class="glass-card p-6">
+                        <h3 class="font-bold text-lg mb-4 text-purple-300">Catat Pemasukan</h3>
+                        <div class="space-y-3">
+                            <select id="incomeMemberSelect" class="w-full p-3 rounded-lg input-field text-white focus:outline-none focus:ring-2 focus:ring-purple-500"></select>
+                            <input id="incomeAmount" type="number" placeholder="Jumlah (misal: 10000)" class="w-full p-3 rounded-lg input-field text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <button onclick="app.addIncome()" class="w-full btn-primary text-white font-bold py-3 px-4 rounded-lg">Catat Pemasukan</button>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-6">
+                        <h3 class="font-bold text-lg mb-4 text-purple-300">Catat Pengeluaran</h3>
+                        <div class="space-y-3">
+                            <input id="expenseDescription" type="text" placeholder="Deskripsi (misal: Beli spidol)" class="w-full p-3 rounded-lg input-field text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <input id="expenseAmount" type="number" placeholder="Jumlah (misal: 5000)" class="w-full p-3 rounded-lg input-field text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <button onclick="app.addExpense()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg">Catat Pengeluaran</button>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-card p-6">
+                        <h3 class="font-bold text-lg mb-4 text-purple-300">Buat Kode Konfirmasi</h3>
+                        <select id="codeMemberSelect" class="w-full p-3 rounded-lg input-field text-white focus:outline-none focus:ring-2 focus:ring-purple-500 mb-3"></select>
+                        <button onclick="app.generatePaymentCode()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg">Buat Kode</button>
+                        <p id="generatedCode" class="mt-4 text-center text-2xl font-mono bg-gray-900 p-3 rounded-lg hidden"></p>
+                    </div>
+
+                    <div class="glass-card p-6">
+                        <h3 class="font-bold text-lg mb-4 text-purple-300">Asisten Bendahara ✨</h3>
+                        <p class="text-sm text-gray-400 mb-4">Dapatkan rangkuman keuangan bulanan dengan bantuan AI.</p>
+                        <button onclick="app.generateFinancialSummary()" class="w-full btn-primary text-white font-bold py-3 px-4 rounded-lg">✨ Rangkum Laporan Bulanan</button>
+                        <div id="financialSummary" class="mt-4 p-3 rounded-lg bg-black/20 text-sm text-gray-300 hidden"></div>
+                    </div>
+                </div>
+
+                <!-- Kolom Kanan: Riwayat Transaksi -->
+                <div class="glass-card p-6">
+                    <h3 class="font-bold text-lg mb-4 text-purple-300">Riwayat Transaksi</h3>
+                    <div id="transactionHistory" class="space-y-2 h-96 overflow-y-auto pr-2">
+                        <!-- Transaksi akan di-generate oleh JS -->
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end items-center mt-6 space-x-2">
+                 <button onclick="app.viewAsMember()" class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">Lihat Profil Anggota</button>
+                <button onclick="app.logout()" class="w-full md:w-auto bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg">Keluar</button>
+            </div>
+        </div>
+
+        <!-- ===== Layar Kustomisasi Avatar ===== -->
+        <div id="avatarCustomizer" class="w-full max-w-4xl hidden fade-in">
+            <h1 class="text-3xl font-bold text-center mb-6 text-purple-300">Personalisasi Avatar Kelinci</h1>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                <div class="glass-card p-6 flex justify-center items-center">
+                    <div id="customizerAvatarPreview" class="avatar-preview">
+                        <!-- Avatar preview untuk kustomisasi -->
+                    </div>
+                </div>
+                <div class="space-y-6">
+                    <div class="glass-card p-6">
+                         <h3 class="font-bold text-lg mb-2 text-purple-300">✨ Butuh Inspirasi?</h3>
+                        <p class="text-sm text-gray-400 mb-3">Biar AI yang bantu carikan ide kostum keren untuk kelincimu!</p>
+                        <button onclick="app.generateAvatarIdea()" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg">Beri Aku Ide Kostum!</button>
+                        <div id="avatarIdea" class="mt-3 p-3 rounded-lg bg-black/20 text-sm text-gray-300 hidden"></div>
+                    </div>
+                    <div class="glass-card p-6">
+                        <div id="customization-options">
+                            <!-- Opsi kustomisasi akan di-generate JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+             <div class="flex justify-between mt-6">
+                <button onclick="app.showView('memberDashboard')" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Kembali</button>
+                <button onclick="app.saveAvatar()" class="btn-primary text-white font-bold py-2 px-6 rounded-lg">Simpan</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ===== Modal Pemenang ===== -->
+    <div id="winnerModal" class="modal-overlay hidden">
+        <div id="confetti-container" class="absolute inset-0 overflow-hidden pointer-events-none"></div>
+        <div class="glass-card p-8 rounded-2xl text-center max-w-lg w-full relative z-10 fade-in">
+            <h2 class="text-4xl font-bold text-yellow-300 mb-2">SELAMAT!</h2>
+            <p class="text-xl mb-6">Kamu adalah Anggota Paling Rajin Bulan Ini!</p>
+            <p class="mb-8">Sebagai hadiah, pilih salah satu kotak misteri di bawah ini:</p>
+            <div class="flex justify-center gap-6 mb-8">
+                <div id="box1" class="gift-box" onclick="app.openGiftBox(1)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#8A2BE2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="m5 7 1.6-2.6A2 2 0 0 1 8.4 3h7.2a2 2 0 0 1 1.8 1.4L19 7"/></svg>
+                </div>
+                <div id="box2" class="gift-box" onclick="app.openGiftBox(2)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#8A2BE2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="m5 7 1.6-2.6A2 2 0 0 1 8.4 3h7.2a2 2 0 0 1 1.8 1.4L19 7"/></svg>
+                </div>
+                <div id="box3" class="gift-box" onclick="app.openGiftBox(3)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#8A2BE2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="m5 7 1.6-2.6A2 2 0 0 1 8.4 3h7.2a2 2 0 0 1 1.8 1.4L19 7"/></svg>
+                </div>
+            </div>
+            <p id="prize-reveal" class="text-lg font-semibold text-green-400 h-6"></p>
+        </div>
+    </div>
+
+
+<script>
+// --- SVG Aset untuk Avatar ---
+const AVATAR_ASSETS = {
+    base: `
+        <svg viewBox="0 0 200 255" xmlns="http://www.w3.org/2000/svg">
+            <!-- Telinga Kanan -->
+            <path d="M165,60 C185,10 185,50 165,100 L150,85" fill="#e0e0e0" stroke="#333" stroke-width="2"/>
+            <!-- Telinga Kiri -->
+            <path d="M35,60 C15,10 15,50 35,100 L50,85" fill="#e0e0e0" stroke="#333" stroke-width="2"/>
+            <!-- Kepala -->
+            <circle cx="100" cy="100" r="60" fill="#f5f5f5" stroke="#333" stroke-width="2"/>
+            <!-- Mata -->
+            <circle cx="80" cy="90" r="5" fill="#333"/>
+            <circle cx="120" cy="90" r="5" fill="#333"/>
+            <!-- Hidung & Mulut -->
+            <path d="M95,105 Q100,115 105,105" fill="none" stroke="#333" stroke-width="2"/>
+            <path d="M100,110 L100,120" fill="none" stroke="#333" stroke-width="2"/>
+            <path d="M90,120 Q100,125 110,120" fill="none" stroke="#333" stroke-width="2"/>
+            <!-- Badan -->
+            <path d="M70,155 Q100,250 130,155 Z" fill="#f5f5f5" stroke="#333" stroke-width="2"/>
+        </svg>
+    `,
+    pakaian: {
+        kaus_biru: `
+            <svg viewBox="0 0 200 255" xmlns="http://www.w3.org/2000/svg">
+                <path d="M75,158 Q100,180 125,158 L130,220 Q100,240 70,220 Z" fill="#3b82f6"/>
+            </svg>`,
+        jaket_merah: `
+            <svg viewBox="0 0 200 255" xmlns="http://www.w3.org/2000/svg">
+                <path d="M70,155 L60,220 Q100,250 140,220 L130,155 Q100,170 70,155 Z" fill="#ef4444"/>
+                <path d="M98,160 L98,230 M102,160 L102,230" stroke="#f5f5f5" stroke-width="2"/>
+            </svg>`,
+    },
+    aksesoris: {
+        kacamata_hitam: `
+            <svg viewBox="0 0 200 255" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="80" cy="90" r="10" fill="black" stroke="gray" stroke-width="1"/>
+                <circle cx="120" cy="90" r="10" fill="black" stroke="gray" stroke-width="1"/>
+                <line x1="90" y1="90" x2="110" y2="90" stroke="gray" stroke-width="2"/>
+            </svg>`,
+        topi_penyihir: `
+             <svg viewBox="0 0 200 255" xmlns="http://www.w3.org/2000/svg">
+                <path d="M60,60 Q100,10 140,60 L160,70 L40,70 Z" fill="#4a044e" stroke="#333" stroke-width="2"/>
+             </svg>`
+    }
+};
+
+class FundApp {
+    constructor() {
+        this.state = {
+            currentUser: null,
+            currentView: 'loginScreen',
+            members: [],
+            transactions: [],
+            paymentCodes: [],
+            tempAvatar: {},
+            sessionGreeting: null,
+        };
+
+        this.dom = {
+            app: document.getElementById('app'),
+            loginScreen: document.getElementById('loginScreen'),
+            memberDashboard: document.getElementById('memberDashboard'),
+            treasurerDashboard: document.getElementById('treasurerDashboard'),
+            avatarCustomizer: document.getElementById('avatarCustomizer'),
+            winnerModal: document.getElementById('winnerModal'),
+            // ... dan elemen lainnya
+        };
+        
+        this.loadState();
+        this.init();
+    }
+
+    init() {
+        if (this.state.members.length === 0) {
+            this.seedData();
+        }
+        this.populateMemberSelects();
+        this.showView(this.state.currentView);
+    }
+    
+    seedData() {
+        console.log("Seeding initial data...");
+        const now = new Date();
+        this.state.members = [
+            { id: 'bendahara', name: 'Bendahara', paid: true, lastPaid: new Date(now.setDate(now.getDate() - 5)).toISOString(), avatar: { pakaian: 'jaket_merah', aksesoris: 'kacamata_hitam' }, badges: [] },
+            { id: 'budi', name: 'Budi', paid: true, lastPaid: new Date(now.setDate(now.getDate() - 1)).toISOString(), avatar: { pakaian: 'kaus_biru', aksesoris: 'kacamata_hitam' }, badges: [{type: 'gold', date: 'Ags 2025'}] },
+            { id: 'cindy', name: 'Cindy', paid: true, lastPaid: new Date(now.setDate(now.getDate() - 2)).toISOString(), avatar: { pakaian: 'jaket_merah', aksesoris: null }, badges: [{type: 'silver', date: 'Ags 2025'}] },
+            { id: 'dina', name: 'Dina', paid: false, lastPaid: null, avatar: { pakaian: null, aksesoris: 'topi_penyihir' }, badges: [] },
+            { id: 'eko', name: 'Eko', paid: true, lastPaid: new Date(now.setDate(now.getDate() - 3)).toISOString(), avatar: { pakaian: null, aksesoris: null }, badges: [{type: 'bronze', date: 'Ags 2025'}] },
+            { id: 'fitri', name: 'Fitri', paid: false, lastPaid: null, avatar: { pakaian: null, aksesoris: null }, badges: [] },
+        ];
+        this.state.transactions = [
+            { type: 'income', member: 'Budi', amount: 10000, date: new Date().toISOString() },
+            { type: 'income', member: 'Cindy', amount: 10000, date: new Date().toISOString() },
+            { type: 'expense', description: 'Beli ATK', amount: 5000, date: new Date().toISOString() },
+        ];
+        this.saveState();
+    }
+    
+    populateMemberSelects() {
+        const memberSelect = document.getElementById('member-select');
+        const incomeMemberSelect = document.getElementById('incomeMemberSelect');
+        const codeMemberSelect = document.getElementById('codeMemberSelect');
+        
+        const optionsHTML = this.state.members
+            .map(m => `<option value="${m.id}">${m.name}</option>`)
+            .join('');
+            
+        memberSelect.innerHTML = optionsHTML;
+        incomeMemberSelect.innerHTML = optionsHTML;
+        codeMemberSelect.innerHTML = optionsHTML;
+    }
+
+    saveState() {
+        // We don't save the session greeting
+        const stateToSave = { ...this.state, sessionGreeting: null };
+        localStorage.setItem('fundAppState', JSON.stringify(stateToSave));
+    }
+
+    loadState() {
+        const savedState = localStorage.getItem('fundAppState');
+        if (savedState) {
+            this.state = { ...JSON.parse(savedState), sessionGreeting: null };
+        }
+    }
+
+    showView(viewId) {
+        this.state.currentView = viewId;
+        Object.values(this.dom).forEach(el => {
+            if (el.id && el.id.endsWith('Screen') || el.id.endsWith('Dashboard') || el.id.endsWith('Customizer')) {
+                 el.classList.add('hidden');
+            }
+        });
+        document.getElementById(viewId).classList.remove('hidden');
+    }
+    
+    login(role) {
+        this.state.sessionGreeting = null; // Reset greeting on new login
+        if (role === 'bendahara') {
+            const memberProfile = this.state.members.find(m => m.id === 'bendahara');
+            this.state.currentUser = { ...memberProfile, name: 'Bendahara (Admin)', role: 'bendahara' };
+            this.showView('treasurerDashboard');
+            this.updateTreasurerUI();
+        } else {
+            const memberId = document.getElementById('member-select').value;
+            const member = this.state.members.find(m => m.id === memberId);
+            if (member) {
+                this.state.currentUser = { ...member, role: 'anggota' };
+                this.showView('memberDashboard');
+                this.updateMemberUI();
+                this.checkWinner();
+            }
+        }
+        // No saveState here, login is session-based
+    }
+    
+    logout() {
+        this.state.currentUser = null;
+        this.state.sessionGreeting = null;
+        this.showView('loginScreen');
+        // No saveState here, logout clears session
+    }
+
+    // --- Gemini API Call Helper ---
+    async callGeminiAPI(prompt, targetElement) {
+        const apiKey = ""; // API key is handled by the execution environment
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+        
+        targetElement.classList.remove('hidden');
+        targetElement.innerHTML = '<p class="text-center animate-pulse">Membuat keajaiban...</p>';
+
+        try {
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+            };
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.text();
+                throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorBody}`);
+            }
+
+            const result = await response.json();
+            const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (text) {
+                // Simple markdown to HTML for better display
+                let htmlText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;"); // Sanitize
+                htmlText = htmlText.replace(/\n/g, '<br>');
+                htmlText = htmlText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                htmlText = htmlText.replace(/\* (.*?)(<br>|$)/g, '<li class="ml-4 list-disc">$1</li>');
+                targetElement.innerHTML = htmlText;
+            } else {
+                targetElement.innerHTML = '<p class="text-red-400">Gagal mendapatkan respon dari AI. Coba lagi nanti.</p>';
+            }
+
+        } catch (error) {
+            console.error("Gemini API call failed:", error);
+            targetElement.innerHTML = `<p class="text-red-400">Terjadi kesalahan. Silakan cek konsol untuk detail.</p>`;
+        }
+    }
+
+    // --- Logika Anggota ---
+    updateMemberUI() {
+        const user = this.state.currentUser;
+        document.getElementById('memberName').textContent = user.name;
+        this.renderAvatar(document.getElementById('memberAvatar'), user);
+        this.renderLeaderboard();
+        this.renderBadges();
+        
+        const paymentStatusEl = document.getElementById('payment-status');
+        if (user.paid) {
+            paymentStatusEl.textContent = "Pembayaran bulan ini sudah lunas. Terima kasih!";
+            paymentStatusEl.className = "mt-3 text-center text-green-400";
+        } else {
+            paymentStatusEl.textContent = "Kamu belum membayar kas bulan ini.";
+            paymentStatusEl.className = "mt-3 text-center text-yellow-400";
+        }
+
+        const logoutButton = document.getElementById('logoutButton');
+        const backToTreasurerButton = document.getElementById('backToTreasurerButton');
+
+        if (user.role === 'bendahara') {
+            logoutButton.classList.add('hidden');
+            backToTreasurerButton.classList.remove('hidden');
+        } else {
+            logoutButton.classList.remove('hidden');
+            backToTreasurerButton.classList.add('hidden');
+        }
+    }
+    
+    renderLeaderboard() {
+        const leaderboardEl = document.getElementById('leaderboard');
+        const sortedMembers = [...this.state.members]
+            .filter(m => m.paid && m.lastPaid)
+            .sort((a, b) => new Date(a.lastPaid) - new Date(b.lastPaid));
+
+        let html = '';
+        if (sortedMembers.length === 0) {
+            html = '<p class="text-gray-400 text-center">Belum ada yang membayar bulan ini.</p>';
+        } else {
+            html = sortedMembers.map((member, index) => `
+                <div class="leaderboard-item flex items-center justify-between p-3 rounded-lg bg-white/5">
+                    <div class="flex items-center gap-3">
+                        <span class="rank font-bold w-8 h-8 flex items-center justify-center rounded-full text-sm">${index + 1}</span>
+                        <span class="font-semibold">${member.name}</span>
+                    </div>
+                    <span class="text-xs text-gray-400">Bayar pada: ${new Date(member.lastPaid).toLocaleDateString('id-ID')}</span>
+                </div>
+            `).join('');
+        }
+        leaderboardEl.innerHTML = html;
+        this.updateSpecialGreeting();
+    }
+    
+    renderBadges() {
+        const badgesEl = document.getElementById('memberBadges');
+        const user = this.state.currentUser;
+        if (!user.badges || user.badges.length === 0) {
+            badgesEl.innerHTML = '<p class="text-gray-400">Belum ada lencana.</p>';
+            return;
+        }
+        
+        const badgeIcons = {
+            gold: '🥇', silver: '🥈', bronze: '🥉'
+        };
+        
+        badgesEl.innerHTML = user.badges.map(badge => `
+            <div class="text-center">
+                <span class="text-4xl">${badgeIcons[badge.type]}</span>
+                <p class="text-xs text-gray-400">${badge.date}</p>
+            </div>
+        `).join('');
+    }
+
+    async updateSpecialGreeting() {
+        const greetingEl = document.getElementById('special-greeting');
+        const sortedMembers = [...this.state.members]
+            .filter(m => m.paid && m.lastPaid)
+            .sort((a, b) => new Date(a.lastPaid) - new Date(b.lastPaid));
+
+        if (sortedMembers.length > 0 && this.state.currentUser && this.state.currentUser.id === sortedMembers[0].id) {
+            if (this.state.sessionGreeting) {
+                greetingEl.textContent = this.state.sessionGreeting;
+                greetingEl.classList.remove('hidden');
+            } else {
+                greetingEl.textContent = `Membuat ucapan spesial untukmu...`;
+                greetingEl.classList.remove('hidden');
+                
+                const prompt = `Buatkan ucapan selamat yang sangat singkat (sekitar 10-15 kata), unik, dan ceria untuk "${this.state.currentUser.name}". Dia adalah juara pembayaran kas tercepat bulan ini di aplikasi FUND CLASS. Buat seolah-olah diucapkan oleh kelinci maskot yang super semangat! ✨`;
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                try {
+                    const payload = { contents: [{ parts: [{ text: prompt }] }] };
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!response.ok) throw new Error('API request failed');
+                    const result = await response.json();
+                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text.trim();
+                    
+                    const greeting = text ? text : `Hebat ${this.state.currentUser.name}! Kamu adalah anggota paling rajin bulan ini!`;
+                    this.state.sessionGreeting = greeting;
+                    greetingEl.textContent = greeting;
+                    
+                } catch (error) {
+                    console.error("Failed to generate custom greeting:", error);
+                    const fallbackGreeting = `Hebat ${this.state.currentUser.name}! Kamu adalah anggota paling rajin bulan ini!`;
+                    this.state.sessionGreeting = fallbackGreeting;
+                    greetingEl.textContent = fallbackGreeting;
+                }
+            }
+        } else {
+            greetingEl.classList.add('hidden');
+        }
+    }
+    
+    submitPaymentCode() {
+        const codeInput = document.getElementById('paymentCodeInput');
+        const code = codeInput.value.trim().toUpperCase();
+        const codeIndex = this.state.paymentCodes.findIndex(c => c.code === code && c.memberId === this.state.currentUser.id && !c.used);
+        
+        const statusEl = document.getElementById('payment-status');
+        
+        if (codeIndex !== -1) {
+            const memberIndex = this.state.members.findIndex(m => m.id === this.state.currentUser.id);
+            this.state.members[memberIndex].paid = true;
+            this.state.members[memberIndex].lastPaid = new Date().toISOString();
+            this.state.paymentCodes[codeIndex].used = true;
+            this.state.currentUser = { ...this.state.members[memberIndex], role: 'anggota' };
+
+            statusEl.textContent = "Pembayaran berhasil dikonfirmasi!";
+            statusEl.className = "mt-3 text-center text-green-400";
+            codeInput.value = '';
+            
+            this.saveState();
+            this.updateMemberUI();
+        } else {
+            statusEl.textContent = "Kode tidak valid atau sudah digunakan.";
+            statusEl.className = "mt-3 text-center text-red-400";
+        }
+    }
+    
+    checkWinner() {
+        const sortedMembers = [...this.state.members]
+            .filter(m => m.paid && m.lastPaid)
+            .sort((a, b) => new Date(a.lastPaid) - new Date(b.lastPaid));
+        
+        if (sortedMembers.length > 0 && this.state.currentUser.id === sortedMembers[0].id) {
+            const hasSeenModal = localStorage.getItem('winnerModalSeenThisMonth');
+            const currentMonth = new Date().getMonth();
+            if (hasSeenModal !== String(currentMonth)) {
+                this.showWinnerModal();
+            }
+        }
+    }
+
+    showWinnerModal() {
+        this.dom.winnerModal.classList.remove('hidden');
+        this.createConfetti();
+        localStorage.setItem('winnerModalSeenThisMonth', new Date().getMonth());
+    }
+    
+    createConfetti() {
+        const container = document.getElementById('confetti-container');
+        container.innerHTML = '';
+        const colors = ['#FFD700', '#8A2BE2', '#3b82f6', '#ef4444', '#f5f5f5'];
+        for (let i = 0; i < 100; i++) {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.left = `${Math.random() * 100}vw`;
+            confetti.style.animationDelay = `${Math.random() * 2}s`;
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            container.appendChild(confetti);
+        }
+    }
+
+    openGiftBox(boxNumber) {
+        const prizes = [
+            "Item Avatar Langka: Mahkota Emas!",
+            "100 Koin untuk personalisasi avatar!",
+            "Voucher Bebas Bayar Kas Bulan Depan!",
+            "Aksesori Spesial: Syal Pelangi!",
+            "Background Profil Eksklusif!",
+        ];
+        const chosenPrize = prizes[Math.floor(Math.random() * prizes.length)];
+        
+        document.getElementById('prize-reveal').textContent = `Kamu mendapatkan: ${chosenPrize}`;
+        
+        [1, 2, 3].forEach(num => {
+            document.getElementById(`box${num}`).onclick = null;
+            document.getElementById(`box${num}`).style.opacity = num === boxNumber ? '1' : '0.5';
+        });
+
+        setTimeout(() => {
+            this.dom.winnerModal.classList.add('hidden');
+            document.getElementById('confetti-container').innerHTML = '';
+        }, 4000);
+    }
+
+    // --- Logika Bendahara ---
+    viewAsMember() {
+        this.showView('memberDashboard');
+        this.updateMemberUI();
+    }
+    
+    generateFinancialSummary() {
+        const summaryEl = document.getElementById('financialSummary');
+        const income = this.state.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+        const expenses = this.state.transactions.filter(t => t.type === 'expense');
+        const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
+        const balance = income - totalExpenses;
+
+        const expenseDetails = expenses.map(e => `- ${e.description}: Rp ${e.amount.toLocaleString('id-ID')}`).join('\n');
+
+        const prompt = `
+            Anda adalah asisten bendahara yang cerdas dan ramah untuk aplikasi kas kelas bernama "FUND CLASS".
+            Tugas Anda adalah membuat rangkuman laporan keuangan bulanan yang jelas dan mudah dipahami.
+            Gunakan bahasa yang santai tapi tetap informatif.
+            
+            Berikut adalah data keuangannya:
+            - Total Pemasukan: Rp ${income.toLocaleString('id-ID')}
+            - Total Pengeluaran: Rp ${totalExpenses.toLocaleString('id-ID')}
+            - Saldo Akhir: Rp ${balance.toLocaleString('id-ID')}
+            - Rincian Pengeluaran:
+            ${expenseDetails || 'Tidak ada pengeluaran bulan ini.'}
+            
+            Buatlah sebuah paragraf rangkuman singkat berdasarkan data di atas. Mulailah dengan sapaan ceria dan akhiri dengan motivasi.
+        `;
+        
+        this.callGeminiAPI(prompt, summaryEl);
+    }
+
+    updateTreasurerUI() {
+        let totalIncome = 0;
+        let totalOutcome = 0;
+
+        const historyEl = document.getElementById('transactionHistory');
+        historyEl.innerHTML = '';
+
+        [...this.state.transactions].reverse().forEach(tx => {
+            let transactionHTML;
+            if (tx.type === 'income') {
+                totalIncome += tx.amount;
+                transactionHTML = `
+                    <div class="flex justify-between items-center text-sm p-2 rounded bg-blue-500/10">
+                        <div>
+                            <p class="font-semibold text-blue-300">Pemasukan dari ${tx.member}</p>
+                            <p class="text-xs text-gray-400">${new Date(tx.date).toLocaleString('id-ID')}</p>
+                        </div>
+                        <p class="font-bold text-green-400">+ ${tx.amount.toLocaleString('id-ID')}</p>
+                    </div>`;
+            } else {
+                totalOutcome += tx.amount;
+                transactionHTML = `
+                    <div class="flex justify-between items-center text-sm p-2 rounded bg-red-500/10">
+                        <div>
+                            <p class="font-semibold text-red-300">Pengeluaran: ${tx.description}</p>
+                            <p class="text-xs text-gray-400">${new Date(tx.date).toLocaleString('id-ID')}</p>
+                        </div>
+                        <p class="font-bold text-red-400">- ${tx.amount.toLocaleString('id-ID')}</p>
+                    </div>`;
+            }
+            historyEl.innerHTML += transactionHTML;
+        });
+
+        const totalBalance = totalIncome - totalOutcome;
+        document.getElementById('totalBalance').textContent = `Rp ${totalBalance.toLocaleString('id-ID')}`;
+        document.getElementById('totalIncome').textContent = `Rp ${totalIncome.toLocaleString('id-ID')}`;
+        document.getElementById('totalOutcome').textContent = `Rp ${totalOutcome.toLocaleString('id-ID')}`;
+    }
+    
+    addIncome() {
+        const memberId = document.getElementById('incomeMemberSelect').value;
+        const amount = parseInt(document.getElementById('incomeAmount').value);
+        const member = this.state.members.find(m => m.id === memberId);
+
+        if (member && amount > 0) {
+            this.state.transactions.push({
+                type: 'income',
+                member: member.name,
+                amount: amount,
+                date: new Date().toISOString()
+            });
+            document.getElementById('incomeAmount').value = '';
+            this.saveState();
+            this.updateTreasurerUI();
+        } else {
+            alert('Mohon isi data dengan benar.');
+        }
+    }
+    
+    addExpense() {
+        const description = document.getElementById('expenseDescription').value.trim();
+        const amount = parseInt(document.getElementById('expenseAmount').value);
+
+        if (description && amount > 0) {
+            this.state.transactions.push({
+                type: 'expense',
+                description: description,
+                amount: amount,
+                date: new Date().toISOString()
+            });
+            document.getElementById('expenseDescription').value = '';
+            document.getElementById('expenseAmount').value = '';
+            this.saveState();
+            this.updateTreasurerUI();
+        } else {
+            alert('Mohon isi data dengan benar.');
+        }
+    }
+    
+    generatePaymentCode() {
+        const memberId = document.getElementById('codeMemberSelect').value;
+        const code = `KAS${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+        
+        this.state.paymentCodes.push({
+            code: code,
+            memberId: memberId,
+            used: false,
+            createdAt: new Date().toISOString()
+        });
+        
+        const codeEl = document.getElementById('generatedCode');
+        codeEl.textContent = code;
+        codeEl.classList.remove('hidden');
+
+        this.saveState();
+        setTimeout(() => codeEl.classList.add('hidden'), 10000); // Sembunyikan setelah 10 detik
+    }
+
+    // --- Logika Avatar ---
+    generateAvatarIdea() {
+        const ideaEl = document.getElementById('avatarIdea');
+        const prompt = `
+            Berikan satu ide kostum yang kreatif dan unik untuk avatar kelinci di aplikasi "FUND CLASS".
+            Deskripsikan tema, pakaian, dan aksesorisnya dalam 2-3 kalimat singkat.
+            Buat idenya terdengar seru dan menarik! Contoh: Tema 'Penyihir Luar Angkasa' dengan jubah berbintang dan topi saturnus.
+        `;
+        this.callGeminiAPI(prompt, ideaEl);
+    }
+    renderAvatar(container, user) {
+        let svgLayers = AVATAR_ASSETS.base;
+        if (user.avatar.pakaian && AVATAR_ASSETS.pakaian[user.avatar.pakaian]) {
+            svgLayers += `<div class="layer">${AVATAR_ASSETS.pakaian[user.avatar.pakaian]}</div>`;
+        }
+        if (user.avatar.aksesoris && AVATAR_ASSETS.aksesoris[user.avatar.aksesoris]) {
+            svgLayers += `<div class="layer">${AVATAR_ASSETS.aksesoris[user.avatar.aksesoris]}</div>`;
+        }
+        container.innerHTML = svgLayers;
+    }
+
+    initAvatarCustomizer() {
+        this.state.tempAvatar = { ...this.state.currentUser.avatar };
+        const optionsContainer = document.getElementById('customization-options');
+        
+        const categories = {
+            'Pakaian': 'pakaian',
+            'Aksesoris': 'aksesoris'
+        };
+
+        let html = '';
+        for (const [title, key] of Object.entries(categories)) {
+            html += `<div class="mb-6">
+                <h3 class="font-bold text-lg mb-3 text-purple-300">${title}</h3>
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="app.setAvatarItem('${key}', null)" class="px-4 py-2 rounded-lg bg-gray-700 text-sm">Lepas</button>
+            `;
+            for (const itemKey in AVATAR_ASSETS[key]) {
+                const itemName = itemKey.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                html += `<button onclick="app.setAvatarItem('${key}', '${itemKey}')" class="px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-500 text-sm">${itemName}</button>`;
+            }
+            html += `</div></div>`;
+        }
+        optionsContainer.innerHTML = html;
+        this.updateCustomizerPreview();
+    }
+    
+    updateCustomizerPreview() {
+        const previewContainer = document.getElementById('customizerAvatarPreview');
+        this.renderAvatar(previewContainer, { avatar: this.state.tempAvatar });
+    }
+    
+    setAvatarItem(category, itemKey) {
+        this.state.tempAvatar[category] = itemKey;
+        this.updateCustomizerPreview();
+    }
+    
+    saveAvatar() {
+        const userIndex = this.state.members.findIndex(m => m.id === this.state.currentUser.id);
+        if (userIndex > -1) {
+            this.state.members[userIndex].avatar = this.state.tempAvatar;
+        }
+        this.state.currentUser.avatar = this.state.tempAvatar;
+        this.saveState();
+        alert('Avatar berhasil disimpan!');
+        this.showView(this.state.currentUser.role === 'bendahara' ? 'treasurerDashboard' : 'memberDashboard');
+        this.updateMemberUI();
+    }
+}
+
+// Inisialisasi Aplikasi
+const app = new FundApp();
+
+// Override fungsi showView untuk menangani inisialisasi kustomizer
+const originalShowView = app.showView.bind(app);
+app.showView = function(viewId) {
+    if (viewId === 'avatarCustomizer') {
+        this.initAvatarCustomizer();
+    }
+    originalShowView(viewId);
+};
+</script>
+
+</body>
+</html>
+
